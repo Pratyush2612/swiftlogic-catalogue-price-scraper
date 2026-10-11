@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SwiftLogic · Catalogue price scraper</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Catalogue price scraper</h1>
+      <div class="sub">Competitor SKUs · BeautifulSoup / Playwright · Postgres history · drop alerts · price intelligence</div>
+    </div>
+    <div class="actions">
+      <button id="scrape">Scrape now</button>
+      <a class="btn ghost" href="/api/export">Export CSV</a>
+    </div>
+  </header>
+  <main>
+    <p id="note" class="sub">Drop alert threshold {{ threshold }}%. SMTP blank → alerts logged, not mailed.</p>
+    <section class="kpis">
+      <div class="kpi"><span>SKUs watched</span><strong>{{ watched }}</strong></div>
+      <div class="kpi"><span>Undercutting us</span><strong>{{ undercut }}</strong></div>
+      <div class="kpi"><span>Open alerts</span><strong>{{ alerts|length }}</strong></div>
+      <div class="kpi"><span>Engagement</span><strong>₹30–70k</strong></div>
+    </section>
+    <section class="grid">
+      <div class="panel">
+        <h2>Watchlist</h2>
+        <table>
+          <thead>
+            <tr><th>SKU</th><th>Competitor</th><th>Ours</th><th>Theirs</th><th>Gap</th><th>DoD</th></tr>
+          </thead>
+          <tbody>
+          {% for r in board %}
+            <tr>
+              <td>{{ r.sku }}<br><span class="sub">{{ r.name }}</span></td>
+              <td>{{ r.competitor }}</td>
+              <td>₹{{ "%.0f"|format(r.our_price) }}</td>
+              <td>₹{{ "%.0f"|format(r.their_price) }}</td>
+              <td class="{{ 'neg' if r.gap < 0 else 'pos' }}">₹{{ "%.0f"|format(r.gap) }} ({{ r.gap_pct }}%)</td>
+              <td class="{{ 'neg' if r.dod_pct < 0 else 'pos' }}">{{ r.dod_pct }}%</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <h2>History</h2>
+        <canvas id="chart"></canvas>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>7-day forecast</h2>
+          {% for f in intel.forecasts %}
+            <div class="alert">{{ f.sku }} · ₹{{ "%.0f"|format(f.last) }} → ₹{{ "%.0f"|format(f.day7) }} <span class="sub">({{ f.slope_per_day }}/day)</span></div>
+          {% endfor %}
+        </div>
+        <div class="panel" style="margin-top:12px">
+          <h2>Unusual moves</h2>
+          {% for a in intel.anomalies %}
+            <div class="alert">{{ a.when }} · {{ a.sku }} · {{ a.change_pct }}% at ₹{{ "%.0f"|format(a.price) }}</div>
+          {% else %}
+            <div class="alert">No isolation-forest flags yet.</div>
+          {% endfor %}
+        </div>
+        <div class="panel" style="margin-top:12px">
+          <h2>Alerts</h2>
+          {% for a in alerts %}
+            <div class="alert">{{ a.created_at.strftime("%d %b %H:%M") }} · {{ a.drop_pct }}% · {{ a.channel }}<br>₹{{ "%.0f"|format(a.old_price) }} → ₹{{ "%.0f"|format(a.new_price) }}</div>
+          {% else %}
+            <div class="alert">None yet. Scrape now to catch the candle drop in the fixture.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
