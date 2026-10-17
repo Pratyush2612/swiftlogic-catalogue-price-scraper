@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: catalogue-price-scraper
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DEMO_SEED
+        value: "0"
+      - key: SCHEDULE_HOURS
+        value: "24"
+      - key: DROP_ALERT_PCT
+        value: "5"

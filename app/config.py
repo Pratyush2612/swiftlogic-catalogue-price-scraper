@@ -15,3 +15,6 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 ALERT_FROM = os.getenv("ALERT_FROM", "alerts@swiftlogic.local")
 ALERT_TO = os.getenv("ALERT_TO", "ops@brand.example")
 SCRAPER_ENGINE = os.getenv("SCRAPER_ENGINE", "beautifulsoup").lower()
+DEMO_SEED = os.getenv("DEMO_SEED", "0") == "1"
+SCHEDULE_HOURS = float(os.getenv("SCHEDULE_HOURS", "24"))
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")
