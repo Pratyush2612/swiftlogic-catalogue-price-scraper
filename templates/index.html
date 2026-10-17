@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SwiftLogic · Catalogue price scraper</title>
+  <title>Catalogue price scraper</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   <header>
     <div>
       <h1>Catalogue price scraper</h1>
-      <div class="sub">Competitor SKUs · BeautifulSoup / Playwright · Postgres history · drop alerts · price intelligence</div>
+      <div class="sub">Live competitor URLs · BeautifulSoup / Playwright · Postgres history · drop alerts</div>
     </div>
     <div class="actions">
       <button id="scrape">Scrape now</button>
@@ -18,30 +18,50 @@
     </div>
   </header>
   <main>
-    <p id="note" class="sub">Drop alert threshold {{ threshold }}%. SMTP blank → alerts logged, not mailed.</p>
+    <p id="note" class="sub">Drop alert threshold {{ threshold }}%. Add real product URLs and a CSS selector for the price.</p>
     <section class="kpis">
       <div class="kpi"><span>SKUs watched</span><strong>{{ watched }}</strong></div>
       <div class="kpi"><span>Undercutting us</span><strong>{{ undercut }}</strong></div>
-      <div class="kpi"><span>Open alerts</span><strong>{{ alerts|length }}</strong></div>
-      <div class="kpi"><span>Engagement</span><strong>₹30–70k</strong></div>
+      <div class="kpi"><span>Recent alerts</span><strong>{{ alerts|length }}</strong></div>
+      <div class="kpi"><span>Engine</span><strong>Live</strong></div>
     </section>
+
+    <section class="panel" style="margin-bottom:12px">
+      <h2>Add SKU</h2>
+      <form id="add" class="form">
+        <input name="our_sku" placeholder="Our SKU" required>
+        <input name="name" placeholder="Product name" required>
+        <input name="category" placeholder="Category" value="General">
+        <input name="our_price" type="number" step="0.01" placeholder="Our price" required>
+        <input name="competitor" placeholder="Competitor name" required>
+        <input name="source_url" placeholder="https://competitor.com/product" required>
+        <input name="price_selector" placeholder="CSS selector, e.g. .price" required>
+        <button type="button" id="test">Test scrape</button>
+        <button type="submit">Save SKU</button>
+      </form>
+      <p id="form-note" class="sub"></p>
+    </section>
+
     <section class="grid">
       <div class="panel">
         <h2>Watchlist</h2>
         <table>
           <thead>
-            <tr><th>SKU</th><th>Competitor</th><th>Ours</th><th>Theirs</th><th>Gap</th><th>DoD</th></tr>
+            <tr><th>SKU</th><th>Competitor</th><th>Ours</th><th>Theirs</th><th>Gap</th><th></th></tr>
           </thead>
           <tbody>
-          {% for r in board %}
+          {% for s in skus %}
+            {% set r = board | selectattr("sku", "equalto", s.our_sku) | list | first %}
             <tr>
-              <td>{{ r.sku }}<br><span class="sub">{{ r.name }}</span></td>
-              <td>{{ r.competitor }}</td>
-              <td>₹{{ "%.0f"|format(r.our_price) }}</td>
-              <td>₹{{ "%.0f"|format(r.their_price) }}</td>
-              <td class="{{ 'neg' if r.gap < 0 else 'pos' }}">₹{{ "%.0f"|format(r.gap) }} ({{ r.gap_pct }}%)</td>
-              <td class="{{ 'neg' if r.dod_pct < 0 else 'pos' }}">{{ r.dod_pct }}%</td>
+              <td>{{ s.our_sku }}<br><span class="sub">{{ s.name }}</span></td>
+              <td>{{ s.competitor }}</td>
+              <td>₹{{ "%.0f"|format(s.our_price) }}</td>
+              <td>{% if r %}₹{{ "%.0f"|format(r.their_price) }}{% else %}—{% endif %}</td>
+              <td class="{{ 'neg' if r and r.gap < 0 else 'pos' }}">{% if r %}₹{{ "%.0f"|format(r.gap) }}{% else %}—{% endif %}</td>
+              <td><button class="ghost del" data-id="{{ s.id }}">Remove</button></td>
             </tr>
+          {% else %}
+            <tr><td colspan="6">No SKUs yet. Add a competitor product URL above.</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -53,6 +73,8 @@
           <h2>7-day forecast</h2>
           {% for f in intel.forecasts %}
             <div class="alert">{{ f.sku }} · ₹{{ "%.0f"|format(f.last) }} → ₹{{ "%.0f"|format(f.day7) }} <span class="sub">({{ f.slope_per_day }}/day)</span></div>
+          {% else %}
+            <div class="alert">Needs at least a few snapshots.</div>
           {% endfor %}
         </div>
         <div class="panel" style="margin-top:12px">
@@ -68,7 +90,7 @@
           {% for a in alerts %}
             <div class="alert">{{ a.created_at.strftime("%d %b %H:%M") }} · {{ a.drop_pct }}% · {{ a.channel }}<br>₹{{ "%.0f"|format(a.old_price) }} → ₹{{ "%.0f"|format(a.new_price) }}</div>
           {% else %}
-            <div class="alert">None yet. Scrape now to catch the candle drop in the fixture.</div>
+            <div class="alert">None yet.</div>
           {% endfor %}
         </div>
       </div>
